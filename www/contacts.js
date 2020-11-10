@@ -59,6 +59,28 @@ var contacts = {
             exec(win, errorCB, "Contacts", "search", [fields, options]);
         }
     },
+    /**
+     * Returns an array of Contacts matching the search criteria.
+     * @param fields that should be searched
+     * @param successCB success callback
+     * @param errorCB error callback
+     * @param {ContactFindOptions} options that can be applied to contact searching
+     * @return array of Contacts matching search criteria
+     */
+    findIOS: function(fields, successCB, errorCB, options) {
+        argscheck.checkArgs('afFO', 'contacts.find', arguments);
+        if (!fields.length) {
+            if (errorCB) {
+                errorCB(new ContactError(ContactError.INVALID_ARGUMENT_ERROR));
+            }
+        } else {
+            options = options || { filter: '', multiple: true };
+            var win = function(result) {
+                successCB(result);
+            };
+            exec(win, errorCB, "Contacts", "searchNew", [fields, options]);
+        }
+    },
     
     /**
      * This function picks contact from phone using contact picker UI

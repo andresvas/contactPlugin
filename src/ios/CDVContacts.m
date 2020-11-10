@@ -19,6 +19,8 @@
 
 #import "CDVContacts.h"
 #import <UIKit/UIKit.h>
+#import <Contacts/Contacts.h>
+
 
 @implementation CDVContactsPicker
 
@@ -409,6 +411,141 @@
 
     return;
 }
+
+
+// new method
+
+- (void)searchNew:(CDVInvokedUrlCommand*)command
+{
+    
+    [self.commandDelegate runInBackground:^{
+
+    
+    NSMutableArray* returnContacts = [NSMutableArray arrayWithCapacity:1];
+    NSDictionary* findOptions = [command argumentAtIndex:1 withDefault:[NSNull null]];
+    NSString* filter = nil;
+    
+    id filterValue = [findOptions objectForKey:@"filter"];
+    BOOL filterValueIsNumber = [filterValue isKindOfClass:[NSNumber class]];
+    filter = filterValueIsNumber ? [filterValue stringValue] : (NSString *) filterValue;
+    
+    
+    
+    CDVContacts* __weak weakSelf = self;
+    NSString* callbackId = command.callbackId;
+
+     CNContactStore *store = [[CNContactStore alloc] init];
+     [store requestAccessForEntityType:CNEntityTypeContacts completionHandler:^(BOOL granted, NSError * _Nullable error) {
+
+         if (granted)
+         {
+             NSArray *keys = @[CNContactNamePrefixKey, CNContactFamilyNameKey, CNContactGivenNameKey,
+                               CNContactPhoneNumbersKey, CNContactImageDataKey, CNContactEmailAddressesKey];
+
+             NSString *containerId = store.defaultContainerIdentifier;
+             NSPredicate *predicate;
+             
+             if (!filter || ![filter isEqualToString:@""]) {
+                 predicate = [CNContact predicateForContactsMatchingName:filter];
+             } else {
+                 
+                 predicate  = [CNContact predicateForContactsInContainerWithIdentifier:containerId];
+             }
+             
+            
+             
+             
+             NSError *error;
+             NSArray *cnContacts = [store unifiedContactsMatchingPredicate:predicate keysToFetch:keys error:&error];
+
+             if (error)
+             {
+                 NSLog(@"ERROR IN FETCHING CONTACTS :: %@", error.description);
+             }
+             else
+             {
+                     
+                     for (CNContact *contact in cnContacts)
+                     {
+                         @try
+                         {
+                             BOOL isValid = NO;
+                             BOOL isEqualText = YES;
+                             NSMutableDictionary *myDictionary = [NSMutableDictionary new];
+                            
+                             [myDictionary setObject:contact.givenName forKey:@"name"];
+                             
+                             if (!filter || ![filter isEqualToString:@""]) {
+                                 NSUInteger dato = [filter length];
+                                 NSString *testFormatted = [contact.givenName substringToIndex:dato];
+                                 if (!([filter caseInsensitiveCompare:testFormatted] == NSOrderedSame)) {
+                                     isEqualText =NO;
+                                 }
+                             }
+                             
+                             for (CNLabeledValue *label in contact.phoneNumbers)
+                                    {
+                                NSString *phone = [label.value stringValue];
+                                    if ([phone length] > 0)
+                                    {
+                                        NSString *stringWithoutFormmatedOne = [phone
+                                           stringByReplacingOccurrencesOfString:@"(" withString:@""];
+                                        
+                                        NSString *stringWithoutFormmatedTwo = [stringWithoutFormmatedOne
+                                           stringByReplacingOccurrencesOfString:@")" withString:@""];
+                                        
+                                        NSString *stringWithoutFormmatedThree = [stringWithoutFormmatedTwo
+                                           stringByReplacingOccurrencesOfString:@"-" withString:@""];
+                                        
+                                        NSString *stringWithoutFormmatedFour = [stringWithoutFormmatedThree
+                                           stringByReplacingOccurrencesOfString:@" " withString:@""];
+                                        
+                                        [myDictionary setObject:stringWithoutFormmatedFour forKey:@"phone"];
+                                        
+                                        
+                                        unichar stringCompare =[stringWithoutFormmatedFour characterAtIndex:0];
+                                        
+                                        if (stringCompare == '3') {
+                                            NSUInteger size = [stringWithoutFormmatedFour length];
+                                            
+                                            if (size == 10) {
+                                                isValid = YES;
+                                            }
+                                        }
+                                    }
+                            }
+                             
+                             
+                             if (isValid) {
+                                 if (isEqualText) {
+                                     [returnContacts addObject:myDictionary];
+                                 }
+                                     
+                             }
+                             
+                             
+                         }
+                         @catch (NSException *exception)
+                         {
+                             NSLog(@"EXCEPTION IN CONTACTS :: %@", exception.description);
+                         }
+                         
+                     }
+                     
+                     CDVPluginResult* result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsArray:returnContacts];
+                     [weakSelf.commandDelegate sendPluginResult:result callbackId:callbackId];
+             }
+         }
+     }];
+        
+        
+    }];// end of workQueue block
+
+    return;
+}
+
+
+// end method
 
 - (void)save:(CDVInvokedUrlCommand*)command
 {
