@@ -445,14 +445,13 @@
              NSString *containerId = store.defaultContainerIdentifier;
              NSPredicate *predicate;
              
-             if (!filter || ![filter isEqualToString:@""]) {
+            /* if (!filter || ![filter isEqualToString:@""]) {
                  predicate = [CNContact predicateForContactsMatchingName:filter];
              } else {
-                 
-                 predicate  = [CNContact predicateForContactsInContainerWithIdentifier:containerId];
-             }
+                predicate  = [CNContact predicateForContactsInContainerWithIdentifier:containerId];
+             }*/
              
-            
+             predicate  = [CNContact predicateForContactsInContainerWithIdentifier:containerId];
              
              
              NSError *error;
@@ -472,15 +471,16 @@
                              BOOL isValid = NO;
                              BOOL isEqualText = YES;
                              NSMutableDictionary *myDictionary = [NSMutableDictionary new];
+                             NSString *fullName = [NSString stringWithFormat:@"%@ %@", contact.givenName, contact.familyName];
+;
+                             [myDictionary setObject:fullName forKey:@"name"];
                             
-                             [myDictionary setObject:contact.givenName forKey:@"name"];
                              
                              if (!filter || ![filter isEqualToString:@""]) {
-                                 NSUInteger dato = [filter length];
-                                 NSString *testFormatted = [contact.givenName substringToIndex:dato];
-                                 if (!([filter caseInsensitiveCompare:testFormatted] == NSOrderedSame)) {
-                                     isEqualText =NO;
-                                 }
+                                 
+                                 if (![fullName.lowercaseString containsString:filter.lowercaseString]) {
+                                     isEqualText = NO;
+                                }
                              }
                              
                              for (CNLabeledValue *label in contact.phoneNumbers)
@@ -502,16 +502,8 @@
                                         
                                         [myDictionary setObject:stringWithoutFormmatedFour forKey:@"phone"];
                                         
-                                        
-                                        unichar stringCompare =[stringWithoutFormmatedFour characterAtIndex:0];
-                                        
-                                        if (stringCompare == '3') {
-                                            NSUInteger size = [stringWithoutFormmatedFour length];
-                                            
-                                            if (size == 10) {
-                                                isValid = YES;
-                                            }
-                                        }
+                                        isValid = YES;
+                                       
                                     }
                             }
                              
